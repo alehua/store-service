@@ -15,17 +15,17 @@ type StoreHandler struct {
 var log = logger.NewZapLogger()
 
 func (s *StoreHandler) RegisterRoutes(engine *gin.Engine) {
-	g := engine.Group("/file")
+	// g := engine.Group("/file")
 
-	g.GET("/test", func(ctx *gin.Context) {
+	engine.GET("/test", func(ctx *gin.Context) {
 		ctx.String(http.StatusOK, "pong")
 	})
 
-	g.POST("/upload", s.Upload)
+	engine.POST("/upload", s.Upload)
 
-	g.GET("/download/:file", s.Download)
+	engine.GET("/download/:file", s.Download)
 
-	g.GET("/index", s.Index)
+	engine.GET("/index", s.Index)
 }
 
 func (s *StoreHandler) Upload(ctx *gin.Context) {
@@ -74,5 +74,16 @@ func (s *StoreHandler) Download(ctx *gin.Context) {
 }
 
 func (s *StoreHandler) Index(ctx *gin.Context) {
-
+	files, err := service.Dir()
+	if err != nil {
+		ctx.JSON(http.StatusOK, ginx.Result{
+			Code: 4,
+			Msg:  "获取文件列表失败",
+			Data: err.Error(),
+		})
+		return
+	}
+	ctx.HTML(http.StatusOK, "index.html", gin.H{
+		"list": files,
+	})
 }

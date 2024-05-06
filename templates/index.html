@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>点击下载</title>
+</head>
+<body>
+{{range $i, $v := .list}}
+    <a href="http://localhost:8000/download/{{$v}}">{{$v}}</a>
+    <br><br>
+{{end}}
+</body>
+</html>

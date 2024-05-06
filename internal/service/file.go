@@ -3,11 +3,11 @@ package service
 import (
 	"fmt"
 	"io"
-	"log"
 	"mime/multipart"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 )
@@ -25,16 +25,12 @@ func setDir(path string) error {
 	return nil
 }
 
-func Save(rFile *multipart.FileHeader, name ...string) error {
+func Save(rFile *multipart.FileHeader) error {
 	errChan := make(chan error, 1)
 	var filePath, fileDir string
 	var err error
 	go func() {
-		if len(name[0]) == 0 {
-			fileDir = fmt.Sprintf("databases/%s", rFile.Filename)
-		} else {
-			fileDir = fmt.Sprintf("databases/%s", name[0])
-		}
+		fileDir = fmt.Sprintf("databases/%s", rFile.Filename)
 		if err := setDir(fileDir); err != nil {
 			errChan <- fmt.Errorf("文件路径创建失败: %s", err.Error())
 			return
@@ -50,7 +46,6 @@ func Save(rFile *multipart.FileHeader, name ...string) error {
 		}
 		absPath, _ := filepath.Abs(filePath)
 		var cmd = exec.Command("ln", "-snf", absPath, fmt.Sprintf("%s/last", fileDir))
-		log.Println("update soft link:", cmd.String())
 		if err = cmd.Run(); err != nil {
 			errChan <- fmt.Errorf("设置软连接失败: %s", err.Error())
 			return
@@ -69,4 +64,20 @@ func DownLoad(fileName string) string {
 		return ""
 	}
 	return targetPath
+}
+
+func Dir() ([]string, error) {
+	root := "databases"
+	files := make([]string, 0)
+	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+		if info.IsDir() && info.Name() != root {
+			spl := strings.Split(path, "/")
+			files = append(files, spl[len(spl)-1])
+		}
+		return nil
+	})
+	if err != nil {
+		return files, err
+	}
+	return files, nil
 }
