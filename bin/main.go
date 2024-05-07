@@ -1,14 +1,12 @@
 package main
 
 import (
-	"fmt"
-	"github.com/alehua/store-service/internal/pkg/ginx"
+	"context"
+	"github.com/alehua/store-service/internal"
 	"github.com/alehua/store-service/internal/web"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/pflag"
-	"golang.org/x/sync/errgroup"
 	"log"
-	"net/http"
 )
 
 func main() {
@@ -24,21 +22,15 @@ func main() {
 
 	handler := web.StoreHandler{}
 	handler.RegisterRoutes(engine)
-	
-	svc := &ginx.Server{
-		Engine: engine,
-		Addr:   fmt.Sprintf(":%d", addr),
-	}
 
-	eg := errgroup.Group{}
-	eg.Go(func() error {
-		return svc.Start()
-	})
-	eg.Go(func() error {
-		return http.ListenAndServe(fmt.Sprintf(":%d", filePort),
-			http.FileServer(http.Dir("./databases")))
-	})
-	if err := eg.Wait(); err != nil {
+	server := internal.Server{
+		Handler:    engine,
+		ServerAddr: addr,
+		AdminAddr:  filePort,
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	if err := server.Start(ctx); err != nil {
 		log.Panicln("服务启动失败: ", err.Error())
 	}
 }
